@@ -173,7 +173,7 @@ C002#H185.png → aB7x_002#H185.png
 
 ### 이미지 겹치기
 
-`-P`, `-S`, `-A`가 명령줄에 나타난 순서대로 접두 이미지, 접미 이미지, 원본 전체 항목을 합성합니다.
+`-P`, `-S`, `-A`, `--at`이 명령줄에 나타난 순서대로 접두 이미지, 접미 이미지, 원본 전체 항목, 고정 PNG를 합성합니다.
 
 ```bash
 node colly.js stack -P "hello " -S " colly" -A
@@ -196,6 +196,17 @@ node colly.js stack -P "hello " -A -S " colly"
 ```
 
 `-A`를 생략하면 원본 전체 항목이 마지막에 자동으로 추가됩니다. 결과는 기준 프로젝트의 `stacked/` 폴더에 저장됩니다.
+
+고정된 이름의 PNG를 특정 순서에 삽입하려면 `--at`을 사용합니다. `--at`은 여러 번 사용할 수 있습니다.
+
+```bash
+node colly.js stack -P "Pre " --at Background.png -A --at Frame.png -S " copy"
+```
+
+```text
+접두사 → Background.png → 원본 → Frame.png → 접미사
+```
+
 
 ## 전체 도움말
 
