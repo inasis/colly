@@ -1,6 +1,6 @@
 {
   "name": "inasis-colly",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Node.js CLI for cropping, merging, aligning, and stacking PNG and JPEG images.",
   "license": "BSD-3-Clause",
   "author": "inasis",
