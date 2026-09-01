@@ -1,0 +1,46 @@
+{
+  "name": "inasis-colly",
+  "version": "1.0.0",
+  "description": "Node.js CLI for cropping, merging, aligning, and stacking PNG and JPEG images.",
+  "license": "BSD-3-Clause",
+  "author": "inasis",
+  "type": "commonjs",
+  "main": "colly.js",
+  "bin": {
+    "colly": "./colly.js"
+  },
+  "files": [
+    "colly.js",
+    "magic.js",
+    "help.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check colly.js && node --check magic.js",
+    "help": "node colly.js --help"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "sharp": "^0.34.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inasis/colly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inasis/colly/issues"
+  },
+  "homepage": "https://github.com/inasis/colly#readme",
+  "keywords": [
+    "cli",
+    "image",
+    "png",
+    "crop",
+    "merge",
+    "stack",
+    "sharp"
+  ]
+}
