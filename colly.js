@@ -800,6 +800,13 @@ async function cmdStack(args) {
         if (arg === "-A") {
             if (order.includes("dest")) usageError("stack", "-A는 한 번만 사용할 수 있습니다.");
             order.push("dest");
+        } else if (arg === "--at") {
+            const value = args[++i];
+            if (!value) usageError("stack", "--at 뒤에 고정 PNG 파일명을 입력하세요.");
+            order.push({
+                type: "at",
+                file: value
+            });
         } else if (["-P", "--prefix", "-S", "--suffix"].includes(arg)) {
             const value = args[++i];
             if (!value) usageError("stack", `${arg} 뒤에 값을 입력하세요.`);
@@ -829,6 +836,15 @@ async function cmdStack(args) {
         })
         .filter(entry => entry.isFile() && entry.name.toLocaleLowerCase().endsWith(".png"))
         .map(entry => entry.name);
+
+    for (const layer of order) {
+        if (typeof layer === "string") continue;
+        const fixedFile = findCaseInsensitive(files, layer.file);
+        if (!fixedFile) {
+            runtimeError("stack", `입력 폴더에 고정 파일 "${layer.file}"이 없습니다.`);
+        }
+        layer.resolvedFile = fixedFile;
+    }
 
     const candidateNames = new Set();
     if (prefix !== undefined) {
@@ -890,7 +906,9 @@ async function cmdStack(args) {
                 layerByRole.post = postfixFile;
             }
 
-            const layerNames = order.map(role => layerByRole[role]);
+            const layerNames = order.map(layer =>
+                typeof layer === "string" ? layerByRole[layer] : layer.resolvedFile
+            );
             await overlayLayers(
                 layerNames.map(name => path.join(options.inputDir, name)),
                 path.join(outputDir, outputName)
