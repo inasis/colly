@@ -15,8 +15,6 @@ Colly는 긴 이미지를 공백 기준으로 나누고, 원하는 순서와 간
 - Node.js 18 이상 권장
 - [`sharp`](https://www.npmjs.com/package/sharp)
 
-`stack` 명령은 추가로 `bin/png-overlap.js`를 사용합니다. 해당 파일이 없으면 `crop`, `merge`, `merge magic`, `align`은 사용할 수 있지만 `stack`은 실행할 수 없습니다.
-
 ## 설치
 
 ```bash
