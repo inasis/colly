@@ -3,7 +3,6 @@
 const sharp = require("sharp");
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
 
 const PROG = "colly";
 const OUTPUT_DIR = "output";
@@ -754,7 +753,40 @@ function cmdAlign(args) {
 }
 
 const STACK_OUTPUT_DIR = "stacked";
-function cmdStack(args) {
+function findCaseInsensitive(files, wanted) {
+    const lower = wanted.toLocaleLowerCase();
+    return files.find(file => file.toLocaleLowerCase() === lower);
+}
+
+async function overlayLayers(layerPaths, outputPath) {
+    const layers = await Promise.all(layerPaths.map(async file => {
+        const metadata = await sharp(file).metadata();
+        return {
+            file,
+            width: metadata.width,
+            height: metadata.height
+        };
+    }));
+
+    const [first, ...rest] = layers;
+    const mismatch = rest.find(item => item.width !== first.width || item.height !== first.height);
+    if (mismatch) {
+        throw new Error(
+            `이미지 크기가 다릅니다: ${path.basename(first.file)}(${first.width}x${first.height}), ` +
+            `${path.basename(mismatch.file)}(${mismatch.width}x${mismatch.height})`
+        );
+    }
+
+    await sharp(layerPaths[0])
+        .composite(layerPaths.slice(1).map(input => ({
+            input,
+            blend: "over"
+        })))
+        .png()
+        .toFile(outputPath);
+}
+
+async function cmdStack(args) {
     if (hasHelpFlag(args)) return printHelp("stack");
 
     const options = parseProjectOptions("stack", args);
@@ -788,14 +820,91 @@ function cmdStack(args) {
     if (!prefix && !suffix) usageError("stack", "stack에는 prefix 또는 suffix가 하나 이상 필요합니다.");
     if (!order.includes("dest")) order.push("dest");
 
-    const overlapArgs = [path.join(__dirname, "bin", "png-overlap.js"), options.inputDir];
-    if (prefix !== undefined) overlapArgs.push("--prefix", prefix);
-    if (suffix !== undefined) overlapArgs.push("--postfix", suffix);
-    overlapArgs.push("--order", `{ ${order.join(" ")} }`, "--output", path.join(options.referenceDir, STACK_OUTPUT_DIR));
+    if (!fs.existsSync(options.inputDir)) {
+        runtimeError("stack", `${options.inputDir}/ 폴더가 없습니다.`);
+    }
 
-    const result = spawnSync(process.execPath, overlapArgs, { stdio: "inherit" });
-    if (result.error) throw result.error;
-    process.exitCode = result.status ?? 1;
+    const files = fs.readdirSync(options.inputDir, {
+            withFileTypes: true
+        })
+        .filter(entry => entry.isFile() && entry.name.toLocaleLowerCase().endsWith(".png"))
+        .map(entry => entry.name);
+
+    const candidateNames = new Set();
+    if (prefix !== undefined) {
+        const lowerPrefix = prefix.toLocaleLowerCase();
+        for (const file of files) {
+            if (file.toLocaleLowerCase().startsWith(lowerPrefix)) {
+                candidateNames.add(file.slice(prefix.length));
+            }
+        }
+    }
+
+    if (suffix !== undefined) {
+        const postfixEnding = `${suffix}.png`;
+        const lowerEnding = postfixEnding.toLocaleLowerCase();
+        for (const file of files) {
+            if (file.toLocaleLowerCase().endsWith(lowerEnding)) {
+                candidateNames.add(`${file.slice(0, -postfixEnding.length)}.png`);
+            }
+        }
+    }
+
+    if (candidateNames.size === 0) {
+        runtimeError("stack", "옵션과 일치하는 PNG 파일 묶음을 찾지 못했습니다.");
+    }
+
+    const outputDir = path.join(options.referenceDir, STACK_OUTPUT_DIR);
+    fs.mkdirSync(outputDir, {
+        recursive: true
+    });
+
+    let success = 0;
+    let failed = 0;
+    const sortedCandidates = [...candidateNames].sort((a, b) => a.localeCompare(b));
+
+    for (const outputName of sortedCandidates) {
+        const base = findCaseInsensitive(files, outputName);
+        if (!base) {
+            console.error(`[건너뜀] 기준 파일 ${outputName}가 없습니다.`);
+            failed++;
+            continue;
+        }
+
+        try {
+            const layerByRole = {
+                dest: base
+            };
+
+            if (prefix !== undefined) {
+                const wanted = `${prefix}${outputName}`;
+                const prefixFile = findCaseInsensitive(files, wanted);
+                if (!prefixFile) throw new Error(`prefix 파일 "${wanted}"이 없습니다.`);
+                layerByRole.pre = prefixFile;
+            }
+
+            if (suffix !== undefined) {
+                const wanted = `${outputName.slice(0, -4)}${suffix}.png`;
+                const postfixFile = findCaseInsensitive(files, wanted);
+                if (!postfixFile) throw new Error(`suffix 파일 "${wanted}"이 없습니다.`);
+                layerByRole.post = postfixFile;
+            }
+
+            const layerNames = order.map(role => layerByRole[role]);
+            await overlayLayers(
+                layerNames.map(name => path.join(options.inputDir, name)),
+                path.join(outputDir, outputName)
+            );
+            console.log(`[완료] ${outputName}`);
+            success++;
+        } catch (error) {
+            console.error(`[실패] ${outputName}: ${error.message}`);
+            failed++;
+        }
+    }
+
+    notice("stack", `완료 ${success}개, 실패/건너뜀 ${failed}개 - ${outputDir}/`);
+    if (failed > 0) process.exitCode = 1;
 }
 
 const commands = {
