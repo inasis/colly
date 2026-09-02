@@ -1,7 +1,7 @@
 {
   "name": "inasis-colly",
-  "version": "1.1.0",
-  "description": "Node.js CLI for cropping, merging, aligning, and stacking PNG and JPEG images.",
+  "version": "1.2.0",
+  "description": "Node.js CLI for cropping, merging, aligning, rotating, sizing, and stacking images.",
   "license": "BSD-3-Clause",
   "author": "inasis",
   "type": "commonjs",
@@ -11,13 +11,14 @@
   },
   "files": [
     "colly.js",
+    "angle.js",
     "magic.js",
     "help.yaml",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check colly.js && node --check magic.js",
+    "check": "node --check colly.js && node --check angle.js && node --check magic.js",
     "help": "node colly.js --help"
   },
   "engines": {
@@ -41,6 +42,9 @@
     "crop",
     "merge",
     "stack",
-    "sharp"
+    "sharp",
+    "angle",
+    "rotate",
+    "normalize"
   ]
 }
