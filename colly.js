@@ -960,6 +960,7 @@ const commands = {
     crop: cmdCrop,
     merge: cmdMerge,
     align: cmdAlign,
+    angle: cmdAngle,
     stack: cmdStack
 };
 const argv = process.argv.slice(2);
