@@ -3,6 +3,7 @@
 const sharp = require("sharp");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 const PROG = "colly";
 const OUTPUT_DIR = "output";
@@ -923,6 +924,36 @@ async function cmdStack(args) {
 
     notice("stack", `완료 ${success}개, 실패/건너뜀 ${failed}개 - ${outputDir}/`);
     if (failed > 0) process.exitCode = 1;
+}
+
+
+async function cmdAngle(args) {
+    if (hasHelpFlag(args)) return printHelp("angle");
+
+    const options = parseProjectOptions("angle", args);
+    const worker = path.join(__dirname, "angle.js");
+    const outputDir = path.join(options.referenceDir, "angled");
+
+    if (!fs.existsSync(options.inputDir)) {
+        runtimeError("angle", `${options.inputDir}/ 폴더가 없습니다.`);
+    }
+
+    await new Promise((resolve, reject) => {
+        const child = spawn(
+            process.execPath,
+            [worker, options.inputDir, outputDir, ...options.args],
+            { stdio: "inherit" }
+        );
+
+        child.once("error", reject);
+        child.once("exit", (code, signal) => {
+            if (signal) return reject(new Error(`각도 보정 작업이 ${signal} 신호로 종료되었습니다.`));
+            if (code !== 0) return reject(new Error(`각도 보정 작업이 종료 코드 ${code}로 실패했습니다.`));
+            resolve();
+        });
+    });
+
+    notice("angle", `완료 - 결과를 ${outputDir}/ 에 저장했습니다`);
 }
 
 const commands = {
