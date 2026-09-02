@@ -5,6 +5,7 @@ global: |
     crop     흰색 공백 기준으로 이미지를 세로로 분할
     merge    분할된 이미지들을 지정한 간격으로 다시 병합
     align    이미지 파일명을 랜덤 ID로 재정렬
+    angle    상품 이미지의 회전·크기·캔버스를 일괄 정렬
     stack    접두·원본·접미 이미지를 지정한 순서로 겹쳐 합성
 
   공통 옵션:
@@ -164,6 +165,39 @@ align: |
     {prog} align
     {prog} align -R ../project
     {prog} align -R ../project -D
+
+
+angle: |
+  사용법:
+    {prog} angle [-R <폴더>] [-D] [옵션...]
+
+  기준 프로젝트의 output/ 폴더에 있는 상품 이미지들을 자동 분석하여
+  기울기를 보정하고, 비율을 유지한 채 동일한 캔버스 크기와 점유율로
+  중앙 정렬합니다. 결과는 기준 프로젝트의 angled/ 폴더에 저장됩니다.
+  -D를 사용하면 output/ 대신 기준 프로젝트 폴더의 이미지를 읽습니다.
+
+  옵션:
+    -R, --reference <폴더>   기준 프로젝트 폴더 (기본: colly.js가 있는 폴더)
+    -D, --direct             output/ 대신 기준 프로젝트 폴더에서 직접 읽기
+    --width <픽셀>           출력 너비 (기본: 1200)
+    --height <픽셀>          출력 높이 (기본: 1200)
+    --occupancy <0.1~1>      상품이 차지할 최대 비율 (기본: 0.86)
+    --orientation <방향>     horizontal 또는 vertical (기본: horizontal)
+    --threshold <0~441>      배경과 상품의 색상 거리 기준 (기본: 35)
+    --background <값>        white, transparent, #RRGGBB (기본: white)
+    --padding <픽셀>         회전 전 투명 여백 (기본: 40)
+    --quality <1~100>        JPG/WebP/AVIF 품질 (기본: 95)
+    --format <형식>          png, jpg, webp, avif, keep (기본: png)
+    --recursive              하위 폴더까지 처리
+    --dry-run                분석만 하고 파일은 저장하지 않음
+    -h, --help               도움말 표시
+
+  예:
+    {prog} angle
+    {prog} angle --width 1000 --height 1000
+    {prog} angle --occupancy 0.82 --background transparent
+    {prog} angle -R ../project
+    {prog} angle -R ../project -D --format keep
 
 stack: |
   사용법:
