@@ -8,6 +8,7 @@ Colly는 긴 이미지를 공백 기준으로 나누고, 원하는 순서와 간
 - `merge`: 분할된 이미지를 고정 간격 또는 높이 보정 간격으로 병합
 - `merge magic`: 이미지를 대화식으로 선택하고 간격을 미리 확인하며 병합
 - `align`: 분할 이미지에 임의의 4자리 prefix를 부여하여 파일명 정렬
+- `angle`: 상품 이미지의 기울기, 크기, 캔버스를 자동 통일
 - `stack`: 접두 이미지, 원본, 접미 이미지를 지정한 순서로 겹쳐 합성
 
 ## 요구 사항
@@ -171,6 +172,25 @@ C001#H320.png → aB7x_001#H320.png
 C002#H185.png → aB7x_002#H185.png
 ```
 
+
+### 상품 이미지 각도·크기 통일
+
+`output/`의 상품 윤곽을 감지해 긴 축의 기울기를 자동 보정하고, 이미지 비율을
+유지하면서 동일한 크기의 캔버스 중앙에 배치합니다. 결과는 `angled/`에 저장됩니다.
+
+```bash
+node colly.js angle
+node colly.js angle --width 1000 --height 1000
+node colly.js angle --occupancy 0.82 --background transparent
+node colly.js angle -R ../project -D --format keep
+```
+
+배경과 상품의 색이 비슷해 윤곽 감지가 부정확하면 `--threshold` 값을 낮춥니다.
+
+```bash
+node colly.js angle --threshold 20
+```
+
 ### 이미지 겹치기
 
 `-P`, `-S`, `-A`, `--at`이 명령줄에 나타난 순서대로 접두 이미지, 접미 이미지, 원본 전체 항목, 고정 PNG를 합성합니다.
@@ -215,6 +235,7 @@ node colly.js --help
 node colly.js crop --help
 node colly.js merge --help
 node colly.js align --help
+node colly.js angle --help
 node colly.js stack --help
 ```
 
