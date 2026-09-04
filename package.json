@@ -1,16 +1,18 @@
 {
   "name": "inasis-colly",
   "version": "1.2.0",
-  "description": "Node.js CLI for cropping, merging, aligning, rotating, sizing, and stacking images.",
+  "description": "Node.js CLI for cropping, merging, aligning, rotating, sizing, stacking, and removing image backgrounds.",
   "license": "BSD-3-Clause",
   "author": "inasis",
   "type": "commonjs",
   "main": "colly.js",
   "bin": {
-    "colly": "./colly.js"
+    "colly": "./cli.js"
   },
   "files": [
+    "cli.js",
     "colly.js",
+    "drop.js",
     "angle.js",
     "magic.js",
     "help.yaml",
@@ -18,8 +20,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check colly.js && node --check angle.js && node --check magic.js",
-    "help": "node colly.js --help"
+    "check": "node --check cli.js && node --check colly.js && node --check drop.js && node --check angle.js && node --check magic.js",
+    "help": "node cli.js --help"
   },
   "engines": {
     "node": ">=18"
@@ -42,6 +44,8 @@
     "crop",
     "merge",
     "stack",
+    "drop",
+    "background-removal",
     "sharp",
     "angle",
     "rotate",
