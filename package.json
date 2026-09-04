@@ -7,21 +7,17 @@
   "type": "commonjs",
   "main": "colly.js",
   "bin": {
-    "colly": "./cli.js"
+    "colly": "./colly.js"
   },
   "files": [
-    "cli.js",
     "colly.js",
-    "drop.js",
-    "angle.js",
     "magic.js",
-    "help.yaml",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "check": "node --check cli.js && node --check colly.js && node --check drop.js && node --check angle.js && node --check magic.js",
-    "help": "node cli.js --help"
+    "check": "node --check colly.js && node --check magic.js",
+    "help": "node colly.js --help"
   },
   "engines": {
     "node": ">=18"
@@ -37,18 +33,5 @@
     "url": "https://github.com/inasis/colly/issues"
   },
   "homepage": "https://github.com/inasis/colly#readme",
-  "keywords": [
-    "cli",
-    "image",
-    "png",
-    "crop",
-    "merge",
-    "stack",
-    "drop",
-    "background-removal",
-    "sharp",
-    "angle",
-    "rotate",
-    "normalize"
-  ]
+  "keywords": ["cli", "image", "png", "crop", "merge", "stack", "drop", "background-removal", "sharp", "angle", "rotate", "normalize"]
 }
