@@ -1,288 +1,118 @@
 # Colly
 
-Colly는 이미지 분할, 병합, 파일명 정렬, 상품 이미지 각도·크기 정규화, 레이어 합성, 흰색 배경 제거를 하나의 CLI로 처리하는 Node.js 이미지 도구입니다.
-
-## 기능
-
-- `crop`: 흰색 공백 기준 세로 분할
-- `merge`: 고정 간격 또는 `#H` 높이 보정 간격으로 병합
-- `merge magic`: 대화형 병합 도우미
-- `align`: 분할 이미지 파일명을 랜덤 4자리 prefix로 정렬
-- `angle`: 상품 이미지 기울기·크기·캔버스 자동 통일
-- `stack`: 접두·원본·접미·고정 PNG 레이어 합성
-- `drop`: 가장자리와 연결된 흰색 배경만 투명화
-
-## 코드 구조
-
-실행 기능은 `colly.js` 하나에 통합되어 있습니다. `merge magic`의 대화형 UI만 `magic.js`를 사용합니다.
-
-```text
-colly/
-├── colly.js
-├── magic.js
-├── package.json
-├── README.md
-└── LICENSE
-```
-
-`angle.js`, `drop.js`, `cli.js`, `help.yaml`은 사용하지 않습니다.
-
-## 요구 사항
-
-- Node.js 18 이상
-- `sharp`
+Colly는 `sharp` 기반의 Node.js 이미지 처리 CLI입니다. 이미지 분할, 번호 정렬, 병합, 자동 병합, 이미지 유사도 검색, 각도 보정, 레이어 합성, 배경 제거 기능을 제공합니다.
 
 ## 설치
+
+Node.js 18 이상이 필요합니다.
 
 ```bash
 git clone https://github.com/inasis/colly.git
 cd colly
 npm install
 npm link
-```
-
-이후 다음처럼 실행합니다.
-
-```bash
 colly --help
 ```
 
-`npm link` 없이 직접 실행할 수도 있습니다.
+직접 실행: `node colly.js --help`.
+
+## 명령어
+
+| 명령 | 기능 |
+| --- | --- |
+| `crop` | 흰색 가로 공백을 기준으로 세로 분할 |
+| `align` | `C001#H71.png` 등을 랜덤 prefix의 번호 파일로 정렬 |
+| `merge` | 간격, 높이 보정, 프리셋 기반 이미지 병합 |
+| `automerge` | 상품명 접두사 및 지정한 접미사 순서대로 자동 병합 |
+| `match` | dHash 및 선택적 RGB 색상 차이 비교 |
+| `angle` | 상품 각도·크기·캔버스 자동 정규화 |
+| `stack` | 지정 순서대로 PNG 레이어 합성 |
+| `drop` | 가장자리와 연결된 흰색 배경만 투명하게 제거 |
+
+공통 옵션: `-R, --reference <폴더>`, `-D, --direct`, `-h, --help`.
+
+## 폴더와 파일명 규칙
+
+`match`와 `merge`는 `cite/`에서 먼저 이미지를 찾고, 없으면 `output/` 또는 `-D` 입력 폴더에서 찾습니다.
+
+`-P C 001`은 `C001.png` 또는 `C001#H320.png`와 같은 번호 파일을 의미합니다. `?sample.png`는 prefix를 붙이지 않고 파일명을 그대로 사용합니다. `?`는 `match`에서 와일드카드가 아닙니다.
+
+`R001`은 같은 prefix의 최대 번호, `R002`는 최대 번호보다 하나 작은 번호입니다. 예를 들어 최대 번호가 009라면 `R002`는 008입니다. 최대 번호는 `cite/`와 입력 폴더를 함께 조사합니다.
+
+## crop / align
 
 ```bash
-node colly.js --help
+colly crop 38
+colly align
 ```
 
-## 공통 옵션
-
-```text
--R, --reference <폴더>   기준 프로젝트 폴더
--D, --direct             output/ 대신 기준 프로젝트 폴더에서 직접 읽기
--h, --help               도움말 표시
-```
-
-기본 입력 폴더는 `<기준 프로젝트>/output/`입니다. `-D`를 사용하면 `<기준 프로젝트>/` 자체를 입력 폴더로 사용합니다.
-
-## crop
-
-긴 PNG/JPG 이미지를 흰색 공백 기준으로 세로 분할합니다.
-
-```bash
-colly crop 15
-colly crop -R ../project 15
-colly crop -R ../project -D image.png 45
-```
-
-결과:
-
-```text
-output/C001#H320.png
-output/C002#H185.png
-```
-
-`#H` 뒤 숫자는 분할된 이미지의 높이입니다.
+예: `C001#H71.png` → `Ab12_001#H71.png`. `align`은 결과 메시지에 `prefix=Ab12`를 출력합니다.
 
 ## merge
 
 ```bash
-colly merge -P C 0 001 20 002 10 003
+colly merge -P Ab12 0 001 20 002 10 R001 -O result.png
+colly merge -P Ab12 --instant 001 R002 '?logo.png' -O result.png
+colly merge -C preset.txt Ab12 003 result.png
 ```
 
-직접 파일명을 지정할 때는 `?`를 붙입니다.
+일반 병합은 `간격 이미지` 쌍을 순서대로 받습니다. `--instant`는 이미지 간격을 0으로 지정합니다. `50H25`처럼 입력하면 `#H` 태그를 이용해 간격을 보정합니다. `-B`는 하단 여백, `-O`는 출력 파일, `-C`는 `$1`, `$2` 등의 인자를 치환하는 프리셋 파일입니다.
+
+## automerge
 
 ```bash
-colly merge 0 '?logo.png' 30 '?banner.png'
+colly automerge 상품명 상단 중단 하단
+colly automerge 상품명 상단 중단 하단 --gap 20 --overwrite
+colly automerge 상품명 상단 중단 하단 --dry-run
 ```
 
-높이 보정 간격도 지원합니다.
+첫 번째 인자는 상품명 전체 또는 일부이며, 뒤의 인자들은 병합할 접미사입니다. 일부 이미지가 없으면 건너뛰고 존재하는 이미지만 순서대로 병합합니다. `merge magic`은 제거되었습니다.
+
+## match
+
+```bash
+colly match -P C 001 R001
+colly match -P C '?sample.png' 001 --iterate
+colly match -P C '?sample.png' R001 --iterate-reverse --result
+colly match -P C '?sample.png' R001 --iterate-reverse --basis 99 --result
+colly match -P C '?sample.png' 003 --color --color-threshold 12
+```
+
+두 이미지 간 1:1 비교를 수행합니다. `--iterate`는 **두 번째 이미지의 번호를 증가**시키고, `--iterate-reverse`는 감소시키며 첫 일치에서 멈춥니다. `R001 --iterate` 또는 `001 --iterate-reverse`는 한 번만 비교합니다. 없는 중간 번호는 건너뜁니다.
+
+기본 판정은 64비트 dHash 해밍 거리 `--threshold 10` 이하입니다. `--basis 99`는 유사도가 **99%를 초과**할 때만 일치하며 `--bashs`도 별칭으로 지원합니다. `--basis`가 `--threshold`보다 우선합니다. `--color`는 RGB 색상 MAE 기준을 추가합니다.
+
+`--result`는 일치 시 실제 번호 세 자리(예: `008`)만 stdout에 출력하고, 불일치 시 아무것도 출력하지 않습니다. 오류는 stderr에 표시됩니다.
+
+## angle / stack / drop
+
+```bash
+colly angle --width 1200 --height 1200 --occupancy 0.86
+colly angle --background transparent --recursive --dry-run
+colly stack -P 'pre_' -A -S '_post'
+colly stack --at Background.png -A --at Frame.png
+colly drop --threshold 245
+```
+
+`angle`은 `angled/`, `stack`은 `stacked/`, `drop`은 `dropped/`에 결과를 저장합니다. `drop`은 flood-fill로 가장자리와 연결된 흰색 배경만 제거합니다.
+
+## 모듈 구조
 
 ```text
-최종 간격 = 기본 간격 + (기준 H - 실제 H)
+colly.js          # CLI 진입점
+commands/         # 명령 및 옵션 파싱
+core/             # 도움말, 경로, cite 우선 검색, R번호
+image/            # sharp 이미지 처리 알고리즘
+cite/             # 참조 이미지
+output/           # 기본 이미지 입력 및 crop 출력
+test/             # node:test 테스트
 ```
 
 ```bash
-colly merge -P C 0 001 50H25 002 -O result.png -B 100
+npm test
 ```
 
-주요 옵션:
-
-```text
--I, --instant             모든 간격을 0px로 처리
--O, --output <파일명>     출력 파일명
--B, --bottom <픽셀>       하단 여백
--C, --command-file <파일> merge 인자 프리셋
-```
-
-Instant 예:
-
-```bash
-colly merge -P C --instant 001 002 003
-colly merge --instant logo.png banner.png
-```
-
-프리셋 예:
-
-```text
--P $1 0 001 50H25 $2 -O $3
-```
-
-```bash
-colly merge -C preset.txt C 002 merged.png
-```
-
-## merge magic
-
-대화형 병합 기능입니다.
-
-```bash
-colly merge magic
-```
-
-이 기능만 별도 `magic.js`를 사용합니다.
-
-## align
-
-`C000#H숫자` 형식의 파일들을 랜덤 4자리 prefix와 연속 번호로 바꿉니다.
-
-```bash
-colly align
-colly align -R ../project
-colly align -R ../project -D
-```
-
-예:
-
-```text
-C001#H320.png → aB7x_001#H320.png
-C002#H185.png → aB7x_002#H185.png
-```
-
-## angle
-
-상품 윤곽을 분석해 기울기를 보정하고 동일한 캔버스와 점유율로 정렬합니다. 결과는 `angled/`에 저장됩니다.
-
-```bash
-colly angle
-colly angle --width 1000 --height 1000
-colly angle --occupancy 0.82 --background transparent
-colly angle -R ../project -D --format keep
-```
-
-옵션:
-
-```text
---width <픽셀>           기본 1200
---height <픽셀>          기본 1200
---occupancy <0.1~1>      기본 0.86
---orientation <방향>     horizontal | vertical
---threshold <0~441>      배경/상품 색상 거리, 기본 35
---background <값>        white | transparent | #RRGGBB
---padding <픽셀>         회전 전 투명 여백
---quality <1~100>        JPG/WebP/AVIF 품질
---format <형식>          png | jpg | webp | avif | keep
---recursive              하위 폴더 포함
---dry-run                분석만 수행
-```
-
-## stack
-
-`-P`, `-S`, `-A`, `--at`이 명령줄에 등장한 순서대로 레이어를 합성합니다.
-
-```bash
-colly stack -P "hello " -S " colly" -A
-```
-
-```text
-접두사 → 접미사 → 원본
-```
-
-```bash
-colly stack -P "hello " -A -S " colly"
-```
-
-```text
-접두사 → 원본 → 접미사
-```
-
-`-A`를 생략하면 원본은 마지막에 자동으로 추가됩니다. 결과는 `stacked/`에 저장됩니다.
-
-고정 PNG는 `--at`으로 원하는 위치에 여러 번 삽입할 수 있습니다.
-
-```bash
-colly stack -P "Pre " --at Background.png -A --at Frame.png -S " copy"
-```
-
-## drop
-
-흰색 배경을 투명 PNG로 바꿉니다.
-
-```bash
-colly drop
-```
-
-`drop`은 모든 흰색 픽셀을 단순 삭제하지 않습니다. 이미지 가장자리에서 시작하여 **가장자리와 연결된 흰색 영역만 flood-fill 방식으로 제거**합니다. 따라서 상품 내부의 독립된 흰색 영역은 유지됩니다.
-
-기본 입력/출력:
-
-```text
-output/product01.jpg → dropped/product01.png
-output/product02.png → dropped/product02.png
-```
-
-흰색 판정 기본값은 `245`입니다.
-
-```bash
-colly drop --threshold 240
-```
-
-```text
-255   거의 완전한 흰색만 제거
-245   기본값
-230   더 넓은 밝은 배경까지 제거
-```
-
-값을 지나치게 낮추면 밝은 상품 가장자리가 배경과 연결되어 함께 제거될 수 있습니다.
-
-다른 프로젝트:
-
-```bash
-colly drop -R ../project
-```
-
-기준 폴더 직접 처리:
-
-```bash
-colly drop -R ../project -D
-```
-
-## 출력 폴더
-
-```text
-crop    → output/
-merge   → merge.png 또는 지정 파일
-align   → 입력 폴더에서 이름 변경
-angle   → angled/
-stack   → stacked/
-drop    → dropped/
-```
-
-## 도움말
-
-```bash
-colly --help
-colly crop --help
-colly merge --help
-colly align --help
-colly angle --help
-colly stack --help
-colly drop --help
-```
-
-직접 실행 시:
-
-```bash
-node colly.js drop --help
-```
+배치 파일은 이 프로젝트 배포본에 포함하지 않습니다.
 
 ## 라이선스
 
